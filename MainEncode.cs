@@ -53,35 +53,44 @@ namespace StringEncode
         }
 
 
-        public static string DecodeMTF(List<int> encoded, List<char> alphabet)
+        public static string DecodeMTF(string encoded, List<char> alphabet)
         {
             List<char> mtfList = new List<char>(alphabet);
             string result = "";
 
-            foreach (int position in encoded)
+            foreach(char c in encoded)
             {
-                char symbol = mtfList[position];
+                char symbol = mtfList[(int)(c - '0')];
                 result += symbol;
 
-                mtfList.RemoveAt(position);
+                mtfList.RemoveAt((int)(c - '0'));
                 mtfList.Insert(0, symbol);
             }
 
             return result;
         }
 
+        public static string DecodeBWT(string bwt)
+        {
+            int length = bwt.Length;
 
+            List<(char, int)> lastColumn = bwt.Select((c, i) => (c, i)).ToList();
+            List<(char, int)> firstColumn = lastColumn.OrderBy(x => x.Item1).ToList();
 
-        //public static string DecodeBWT(string encoded)
-        //{
-        //    int length = encoded.Length;
-        //    string[] rotations = new string[length];
+            int[] next = new int[length];
+            for (int i = 0; i < length; i++)
+            {
+                next[i] = firstColumn.IndexOf(lastColumn[i]);
+            }
+            char[] original = new char[length];
+            int index = 0; 
+            for (int i = 0; i < length; i++)
+            {
+                original[length - 1 - i] = bwt[index];
+                index = next[index];
+            }
 
-        //    for (int i = 0; i < length; i++)
-        //    {
-        //        rotations[i] = encoded.Substring(length - i) + encoded.Substring(0, length - i);
-        //    }
-        //    return rotations[length-1];
-        //}
+            return new string(original);
+        }
     }
 }

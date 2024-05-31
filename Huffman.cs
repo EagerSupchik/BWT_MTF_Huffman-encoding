@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace StringEncode
 {
@@ -94,47 +95,71 @@ namespace StringEncode
             BuildHuffmanCodesHelper(node.Right, code + "1", huffmanCodes);
         }
 
-        static string Encode(string input, Dictionary<char, string> huffmanCodes)
+        static byte[] Encode(string input, Dictionary<char, string> huffmanCodes)
         {
-            string encoded = "";
+            var bits = new List<bool>();
             foreach (var ch in input)
             {
                 if (huffmanCodes.TryGetValue(ch, out string code))
                 {
-                    encoded += code;
+                    foreach (var bit in code)
+                    {
+                        bits.Add(bit == '1');
+                    }
                 }
                 else
                 {
                     throw new KeyNotFoundException($"{ch} нет в словаре");
                 }
             }
+
+            int byteCount = (bits.Count + 7) / 8;
+            byte[] encoded = new byte[byteCount];
+            for (int i = 0; i < bits.Count; i++)
+            {
+                if (bits[i])
+                {
+                    encoded[i / 8] |= (byte)(1 << (7 - (i % 8)));
+                }
+            }
+
             return encoded;
+
         }
 
-
-
-        public static string Decode(string encodedString, HuffmanNode root)
+        static string Decode(byte[] encodedBytes, HuffmanNode root, ushort len)
         {
+            var bits = new List<bool>();
+            foreach (var b in encodedBytes)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    bits.Add((b & (1 << (7 - i))) != 0);
+                }
+            }
+
             string result = "";
             HuffmanNode current = root;
 
-            foreach (char bit in encodedString)
+            foreach (var bit in bits)
             {
-                if (bit == '0')
-                {
-                    current = current.Left;
-                }
-                else if (bit == '1')
+                if (bit)
                 {
                     current = current.Right;
                 }
-
-                if (current.Character != null)
+                else
                 {
-                    result += current.Character;
+                    current = current.Left;
+                }
+
+                if (current.Character.HasValue)
+                {
+                    result += current.Character.Value;
                     current = root;
                 }
             }
+
+            result = result.Substring(0, len);
 
             return result;
         }
