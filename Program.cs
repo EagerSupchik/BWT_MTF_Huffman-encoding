@@ -9,51 +9,62 @@ namespace StringEncode
     {
         static void Main(string[] args)
         {
-            string str = Console.ReadLine();
-            Console.WriteLine($"Изначальная строка: {str}\n");
-
-            ushort str_len = (ushort)str.Length;
-            HashSet<char> uniq = new HashSet<char>(str);
-            List<char> alphabet = uniq.ToList();
-            alphabet.Sort();
-
-
-            var result = BWT(str);
-            Console.WriteLine($"Результат BWT: {result}");
-            var mtf = MTF(result);
-            Console.WriteLine($"Результат move-to-forward: {mtf}");
-
-
-            var frequency = BuildFrequencyDictionary(mtf);
-            var priorityQueue = BuildPriorityQueue(frequency);
-            var root = BuildHuffmanTree(priorityQueue);
-            var huffmanCodes = BuildHuffmanCodes(root);
-
-            var encoded = Encode(mtf, huffmanCodes);
-            Console.WriteLine($"Результат кодирования Хаффмана в массиве байт:\n");
-            foreach (byte b in encoded)
+            try
             {
-                string binaryByteString = Convert.ToString(b, 2);
-                Console.WriteLine(binaryByteString);
+                Console.WriteLine("Enter a string to encode:");
+                string input = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(input))
+                {
+                    throw new ArgumentException("Input string cannot be empty");
+                }
+
+                Console.WriteLine($"Original string: {input}\n");
+
+                int strLength = input.Length;
+                HashSet<char> uniqueChars = new HashSet<char>(input);
+                List<char> alphabet = uniqueChars.ToList();
+                alphabet.Sort();
+
+                var bwtResult = BWT(input);
+                Console.WriteLine($"BWT result: {bwtResult}");
+                var mtfResult = MTF(bwtResult);
+                Console.WriteLine($"Move-to-front result: {mtfResult}");
+
+                var frequency = BuildFrequencyDictionary(mtfResult);
+                var priorityQueue = BuildPriorityQueue(frequency);
+                var root = BuildHuffmanTree(priorityQueue);
+                var huffmanCodes = BuildHuffmanCodes(root);
+
+                var encoded = Encode(mtfResult, huffmanCodes);
+                Console.WriteLine($"Huffman encoding result in bytes:\n");
+                foreach (byte b in encoded)
+                {
+                    string binaryByteString = Convert.ToString(b, 2).PadLeft(8, '0');
+                    Console.WriteLine(binaryByteString);
+                }
+
+                Console.WriteLine($"\nCompressed size: {encoded.Length} bytes");
+
+                int originalSize = Encoding.Unicode.GetByteCount(input);
+                Console.WriteLine($"Original string size in UTF-16: {originalSize} bytes");
+                
+                double compressionRatio = (1 - (double)encoded.Length / originalSize) * 100;
+                Console.WriteLine($"Compression ratio: {compressionRatio:F2}%\n");
+
+                var decodedMtf = Decode(encoded, root, strLength);
+                Console.WriteLine($"MTF decoding from Huffman: {decodedMtf}");
+
+                var decodedBWT = DecodeMTF(decodedMtf, alphabet);
+                Console.WriteLine($"BWT decoding result: {decodedBWT}\n");
+
+                var decodedString = DecodeBWT(decodedBWT);
+                Console.WriteLine($"Final decoding result: {decodedString}");
             }
-
-            Console.WriteLine($"\nЗанимаемое место в памяти {encoded.Length} байт");
-
-            int oldSize = Encoding.Unicode.GetByteCount(str);
-
-            Console.WriteLine($"Занимаемое место в памяти изначальной строчки в кодировке UTF-16: {oldSize} байт");
-            double compressionRatio = (1 - (double)encoded.Length / oldSize) * 100;
-            Console.WriteLine($"Процент сжатия: {compressionRatio:F2}%\n");
-
-            var decodedMtf = Decode(encoded, root, str_len);
-            Console.WriteLine($"Декодирование mtf из Хаффмана: {decodedMtf}");
-
-            var decodedBWT = DecodeMTF(decodedMtf, alphabet);
-            Console.WriteLine($"Результат декодирования MTF в BWT: {decodedBWT}\n");
-
-            var decodedString = DecodeBWT(decodedBWT);
-            Console.WriteLine($"Результат полного декодирования: {decodedString}");
-
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
         }
     }
 }
